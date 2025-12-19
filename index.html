@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Red vs Blue Tic-Tac-Toe</title>
+    <title>Arc Tic-Tac-Toe: Red vs Blue</title>
     <style>
         :root {
             --red-color: #ff4d4d;
@@ -17,29 +17,44 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
+            background-color: #1a1a1a; /* 배경을 어둡게 하여 색상 강조 */
+            color: white;
             overflow: hidden;
         }
 
-        /* 시작 화면 */
+        /* 1. 시작 화면 디자인 */
         #start-screen {
             text-align: center;
-            z-index: 10;
+            position: relative;
         }
 
-        button {
-            padding: 15px 40px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            border: none;
-            border-radius: 8px;
-            background-color: #333;
-            color: white;
-            transition: 0.3s;
+        /* 아치형 타이틀 */
+        .arch-container {
+            position: relative;
+            width: 300px;
+            height: 150px;
+            margin: 0 auto 50px;
         }
 
-        button:hover {
-            background-color: #555;
+        .arch-char {
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            font-size: 2.5rem;
+            font-weight: bold;
+            transform-origin: 0 -120px; /* 회전 중심축을 위로 설정하여 아치형 구현 */
+        }
+
+        /* 데코레이션 O, X */
+        .deco {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0.3;
+            animation: float 3s infinite ease-in-out;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
         }
 
         /* 게임 보드 */
@@ -47,55 +62,68 @@
             display: none;
             grid-template-columns: repeat(3, 100px);
             grid-template-rows: repeat(3, 100px);
-            gap: 10px;
+            gap: 15px;
         }
 
         .cell {
             width: 100px;
             height: 100px;
-            background-color: white;
-            border: 2px solid #ddd;
+            background-color: #333;
+            border: 2px solid #444;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 2.5rem;
+            font-size: 3rem;
             font-weight: bold;
             cursor: pointer;
+            border-radius: 10px;
+            transition: 0.2s;
         }
+        .cell:hover { background-color: #444; }
 
-        .cell.red { color: var(--red-color); }
-        .cell.blue { color: var(--blue-color); }
+        /* 팀별 색상 및 기호 */
+        .cell.red { color: var(--red-color); text-shadow: 0 0 10px var(--red-color); }
+        .cell.blue { color: var(--blue-color); text-shadow: 0 0 10px var(--blue-color); }
 
-        /* 결과 화면 (오버레이) */
+        /* 결과 화면 */
         #result-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 20;
+            z-index: 100;
         }
 
         #result-text {
-            font-size: 4rem;
+            font-size: 5rem;
             font-weight: bold;
-            color: white;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+            -webkit-text-stroke: 2px #fff;
         }
 
-        .hidden { display: none !important; }
+        button {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 50px;
+            background-color: white;
+            color: black;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255,255,255,0.3);
+        }
     </style>
 </head>
 <body>
 
     <div id="start-screen">
-        <h1>RED vs BLUE</h1>
-        <button onclick="startGame()">게임 시작</button>
+        <div class="arch-container" id="archTitle"></div>
+        <div class="deco" style="top:-20px; left:-50px; color:var(--red-color)">O</div>
+        <div class="deco" style="top:50px; right:-60px; color:var(--blue-color); animation-delay: 1s;">X</div>
+        <div class="deco" style="bottom:10px; left:20px; color:var(--blue-color); animation-delay: 0.5s;">X</div>
+        <button onclick="startGame()">START GAME</button>
     </div>
 
     <div id="game-board">
@@ -112,22 +140,31 @@
 
     <div id="result-overlay">
         <div id="result-text"></div>
-        <button onclick="resetGame()">다시 시도</button>
+        <button onclick="resetGame()">AGAIN?</button>
     </div>
 
     <script>
-        let currentPlayer = 'RED'; // RED가 먼저 시작
+        // 아치형 텍스트 생성 (Tic-Tac-Toe!!)
+        const title = "Tic-Tac-Toe!!";
+        const container = document.getElementById('archTitle');
+        const chars = title.split("");
+        const totalAngle = 120; // 전체 아치 각도
+        
+        chars.forEach((char, i) => {
+            const span = document.createElement('span');
+            span.innerText = char;
+            span.className = 'arch-char';
+            const angle = (i * (totalAngle / (chars.length - 1))) - (totalAngle / 2);
+            span.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+            container.appendChild(span);
+        });
+
+        let currentPlayer = 'RED'; // RED(O)가 시작
         let gameState = ["", "", "", "", "", "", "", "", ""];
         let gameActive = false;
 
-        const winningConditions = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8], // 가로
-            [0, 3, 6], [1, 4, 7], [2, 5, 8], // 세로
-            [0, 4, 8], [2, 4, 6]             // 대각선
-        ];
-
         function startGame() {
-            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('start-screen').style.display = 'none';
             document.getElementById('game-board').style.display = 'grid';
             gameActive = true;
         }
@@ -136,21 +173,22 @@
             if (gameState[index] !== "" || !gameActive) return;
 
             gameState[index] = currentPlayer;
-            cell.innerText = "O"; // 기호는 동일하게 O로 표시 (색상으로 팀 구분)
+            // 팀별 기호 설정: RED=O, BLUE=X
+            cell.innerText = currentPlayer === 'RED' ? 'O' : 'X';
             cell.classList.add(currentPlayer.toLowerCase());
 
             checkResult();
         }
 
         function checkResult() {
+            const winConditions = [
+                [0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]
+            ];
             let roundWon = false;
-            for (let i = 0; i <= 7; i++) {
-                const winCondition = winningConditions[i];
-                let a = gameState[winCondition[0]];
-                let b = gameState[winCondition[1]];
-                let c = gameState[winCondition[2]];
-                if (a === '' || b === '' || c === '') continue;
-                if (a === b && b === c) {
+
+            for (let condition of winConditions) {
+                let [a, b, c] = [gameState[condition[0]], gameState[condition[1]], gameState[condition[2]]];
+                if (a && a === b && a === c) {
                     roundWon = true;
                     break;
                 }
@@ -161,32 +199,24 @@
                 return;
             }
 
-            let roundDraw = !gameState.includes("");
-            if (roundDraw) {
-                showResult("DRAW");
-                return;
-            }
-
-            // 플레이어 교체
+            if (!gameState.includes("")) showResult("DRAW");
+            
             currentPlayer = currentPlayer === "RED" ? "BLUE" : "RED";
         }
 
         function showResult(message) {
             const overlay = document.getElementById('result-overlay');
-            const resultText = document.getElementById('result-text');
-            
-            resultText.innerText = message;
+            const text = document.getElementById('result-text');
+            text.innerText = message;
             overlay.style.display = 'flex';
 
-            // 승리 팀 색상 투명도 70% 배경 설정
             if (message.includes("RED")) {
                 overlay.style.backgroundColor = "rgba(255, 77, 77, 0.7)";
             } else if (message.includes("BLUE")) {
                 overlay.style.backgroundColor = "rgba(77, 121, 255, 0.7)";
             } else {
-                overlay.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+                overlay.style.backgroundColor = "rgba(50, 50, 50, 0.7)";
             }
-            
             gameActive = false;
         }
 
@@ -195,9 +225,9 @@
             gameState = ["", "", "", "", "", "", "", "", ""];
             gameActive = true;
             document.getElementById('result-overlay').style.display = 'none';
-            document.querySelectorAll('.cell').forEach(cell => {
-                cell.innerText = "";
-                cell.classList.remove('red', 'blue');
+            document.querySelectorAll('.cell').forEach(c => {
+                c.innerText = "";
+                c.classList.remove('red', 'blue');
             });
         }
     </script>
